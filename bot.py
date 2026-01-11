@@ -752,21 +752,21 @@ class MaryAssistantBot:
             "always": AutoReplyMode.ALWAYS,
             "custom": AutoReplyMode.CUSTOM,
             "off": AutoReplyMode.OFF
-    }
-    if mode in mode_map:
-        user_data["autoreply_mode"] = mode_map[mode].value
-        self.save_database()
-        messages = {
-            "work": "👩‍💼 Автоответчик включён по рабочим часам (после 18:00, выходные, ночью)",
-            "always": "👩‍💼 Автоответчик всегда включён",
-            "custom": "👩‍💼 Включён пользовательский автоответчик",
-            "off": "👩‍💼 Автоответчик выключен. Отвечаю на все сообщения лично"
         }
+        if mode in mode_map:
+            user_data["autoreply_mode"] = mode_map[mode].value
+            self.save_database()
+            messages = {
+                "work": "👩‍💼 Автоответчик включён по рабочим часам (после 18:00, выходные, ночью)",
+                "always": "👩‍💼 Автоответчик всегда включён",
+                "custom": "👩‍💼 Включён пользовательский автоответчик",
+                "off": "👩‍💼 Автоответчик выключен. Отвечаю на все сообщения лично"
+            }
         
-        query = update.callback_query
-        await query.edit_message_text(messages[mode])
-        await asyncio.sleep(2)
-        await self.show_autoreply_menu(update)
+            query = update.callback_query
+            await query.edit_message_text(messages[mode])
+            await asyncio.sleep(2)
+            await self.show_autoreply_menu(update)
 
     async def set_status_from_button(self, query, status: str):
         """Устанавливает статус из кнопки"""
