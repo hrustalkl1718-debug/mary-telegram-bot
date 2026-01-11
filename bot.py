@@ -887,7 +887,7 @@ async def back_to_main(self, update: Update):
     """Возврат в главное меню"""
     query = update.callback_query
     user = update.effective_user
-        text = f"""👩‍💼 *Главное меню*
+    text = f"""👩‍💼 *Главное меню*
 Выберите действие, {user.first_name}:"""
         keyboard = [
             [
