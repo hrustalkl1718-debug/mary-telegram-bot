@@ -762,7 +762,7 @@ class MaryAssistantBot:
             "custom": "👩‍💼 Включён пользовательский автоответчик",
             "off": "👩‍💼 Автоответчик выключен. Отвечаю на все сообщения лично"
         }
-        # Получаем query для ответа
+        
         query = update.callback_query
         await query.edit_message_text(messages[mode])
         await asyncio.sleep(2)
@@ -893,11 +893,11 @@ async def back_to_main(self, update: Update):
         [
             InlineKeyboardButton("🤖 Автоответчик", callback_data="autoreply_menu"),
             InlineKeyboardButton("📅 Сегодня", callback_data="today")
-         ],
+        ],
         [
             InlineKeyboardButton("📝 Задачи", callback_data="tasks"),
             InlineKeyboardButton("⏰ Напоминания", callback_data="reminders")
-         ],
+        ],
         [
             InlineKeyboardButton("🏖️ Отпуск", callback_data="vacation"),
             InlineKeyboardButton("🤒 Больничный", callback_data="sick")
@@ -905,13 +905,13 @@ async def back_to_main(self, update: Update):
         [
             InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
             InlineKeyboardButton("❓ Помощь", callback_data="help")
-         ]
         ]
+    ]
     await query.edit_message_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
-        )
+    )
 
     # ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
     def run(self):
