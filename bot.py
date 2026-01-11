@@ -743,15 +743,15 @@ class MaryAssistantBot:
             status = data[7:]  # vacation, sick, busy, available
             await self.set_status_from_button(update, status)
 
-   async def set_autoreply_mode(self, update: Update, mode: str):
-    """Устанавливает режим автоответчика"""
-    user_id = update.effective_user.id  # ← правильно
-    user_data = self.get_user_data(user_id)
-    mode_map = {
-        "work": AutoReplyMode.WORK_HOURS,
-        "always": AutoReplyMode.ALWAYS,
-        "custom": AutoReplyMode.CUSTOM,
-        "off": AutoReplyMode.OFF
+    async def set_autoreply_mode(self, update: Update, mode: str):
+        """Устанавливает режим автоответчика"""
+        user_id = update.effective_user.id  # ← правильно
+        user_data = self.get_user_data(user_id)
+        mode_map = {
+            "work": AutoReplyMode.WORK_HOURS,
+            "always": AutoReplyMode.ALWAYS,
+            "custom": AutoReplyMode.CUSTOM,
+            "off": AutoReplyMode.OFF
     }
     if mode in mode_map:
         user_data["autoreply_mode"] = mode_map[mode].value
