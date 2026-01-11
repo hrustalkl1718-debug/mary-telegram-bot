@@ -743,28 +743,30 @@ class MaryAssistantBot:
             status = data[7:]  # vacation, sick, busy, available
             await self.set_status_from_button(update, status)
 
-    async def set_autoreply_mode(self, query, mode: str):
-        """Устанавливает режим автоответчика"""
-        user_id = query.from_user.id
-        user_data = self.get_user_data(user_id)
-        mode_map = {
-            "work": AutoReplyMode.WORK_HOURS,
-            "always": AutoReplyMode.ALWAYS,
-            "custom": AutoReplyMode.CUSTOM,
-            "off": AutoReplyMode.OFF
+   async def set_autoreply_mode(self, update: Update, mode: str):
+    """Устанавливает режим автоответчика"""
+    user_id = update.effective_user.id  # ← правильно
+    user_data = self.get_user_data(user_id)
+    mode_map = {
+        "work": AutoReplyMode.WORK_HOURS,
+        "always": AutoReplyMode.ALWAYS,
+        "custom": AutoReplyMode.CUSTOM,
+        "off": AutoReplyMode.OFF
+    }
+    if mode in mode_map:
+        user_data["autoreply_mode"] = mode_map[mode].value
+        self.save_database()
+        messages = {
+            "work": "👩‍💼 Автоответчик включён по рабочим часам (после 18:00, выходные, ночью)",
+            "always": "👩‍💼 Автоответчик всегда включён",
+            "custom": "👩‍💼 Включён пользовательский автоответчик",
+            "off": "👩‍💼 Автоответчик выключен. Отвечаю на все сообщения лично"
         }
-        if mode in mode_map:
-            user_data["autoreply_mode"] = mode_map[mode].value
-            self.save_database()
-            messages = {
-                "work": "👩‍💼 Автоответчик включён по рабочим часам (после 18:00, выходные, ночью)",
-                "always": "👩‍💼 Автоответчик всегда включён",
-                "custom": "👩‍💼 Включён пользовательский автоответчик",
-                "off": "👩‍💼 Автоответчик выключен. Отвечаю на все сообщения лично"
-            }
-            await query.edit_message_text(messages[mode])
-            await asyncio.sleep(2)
-            await self.show_autoreply_menu(query)
+        # Получаем query для ответа
+        query = update.callback_query
+        await query.edit_message_text(messages[mode])
+        await asyncio.sleep(2)
+        await self.show_autoreply_menu(update)
 
     async def set_status_from_button(self, query, status: str):
         """Устанавливает статус из кнопки"""
@@ -790,9 +792,10 @@ class MaryAssistantBot:
             })
             await query.edit_message_text("👩‍💼 Статус изменён на 'Доступна'. Автоответчик по рабочим часам.")
 
-    async def today_from_button(self, query):
+    async def today_from_button(self, update: Update):
         """Показывает сегодняшний день из кнопки"""
-        user_id = query.from_user.id
+        query = update.callback_query
+        user_id = update.effective_user.id
         today = datetime.now().strftime("%d.%m.%Y")
         text = f"👩‍💼 *Сегодня {today}:*\n"
         text += "📅 *Встречи:*\n• Нет запланированных встреч\n"
@@ -801,23 +804,25 @@ class MaryAssistantBot:
         text += "👩‍💼 С уважением, Маня"
         await query.edit_message_text(text, parse_mode="Markdown")
 
-    async def reminders_from_button(self, query):
-        """Показывает напоминания"""
-        user_id = query.from_user.id
-        reminders = self.db["reminders"].get(str(user_id), [])
-        if not reminders:
-            text = "👩‍💼 *У вас пока нет напоминаний!*\nНапишите, например:\n• \"Напомни позвонить маме в 18:00\"\n• \"Напоминание: оплатить счет завтра\""
-        else:
-            text = "👩‍💼 *Ваши напоминания:*\n"
-            for i, rem in enumerate(reminders[-5:], 1):
-                time_str = datetime.fromisoformat(rem["time"]).strftime("%d.%m %H:%M")
-                status = "✅" if rem["status"] == "sent" else "⏰"
-                text += f"{i}. {status} {time_str} — {rem['text'][:40]}...\n"
-        await query.edit_message_text(text, parse_mode="Markdown")
+async def reminders_from_button(self, update: Update):
+    """Показывает напоминания"""
+    query = update.callback_query
+    user_id = update.effective_user.id
+    reminders = self.db["reminders"].get(str(user_id), [])
+    if not reminders:
+        text = "👩‍💼 *У вас пока нет напоминаний!*\nНапишите, например:\n• \"Напомни позвонить маме в 18:00\"\n• \"Напоминание: оплатить счет завтра\""
+    else:
+        text = "👩‍💼 *Ваши напоминания:*\n"
+        for i, rem in enumerate(reminders[-5:], 1):
+            time_str = datetime.fromisoformat(rem["time"]).strftime("%d.%m %H:%M")
+            status = "✅" if rem["status"] == "sent" else "⏰"
+            text += f"{i}. {status} {time_str} — {rem['text'][:40]}...\n"
+    await query.edit_message_text(text, parse_mode="Markdown")
 
-    async def vacation_dialog(self, query):
-        """Диалог настройки отпуска"""
-        text = """👩‍💼 *Настройка отпуска*
+async def vacation_dialog(self, update: Update):
+    """Диалог настройки отпуска"""
+    query = update.callback_query
+    text = """👩‍💼 *Настройка отпуска*
 Чтобы уйти в отпуск, напишите:
 /status vacation ДД.ММ ДД.ММ
 *Пример:*
@@ -828,11 +833,12 @@ class MaryAssistantBot:
 3. Все будут знать, что вы в отпуске
 *Для выхода из отпуска:*
 /status available"""
-        await query.edit_message_text(text, parse_mode="Markdown")
+    await query.edit_message_text(text, parse_mode="Markdown")
 
-    async def sick_dialog(self, query):
-        """Диалог настройки больничного"""
-        text = """👩‍💼 *Настройка больничного*
+async def sick_dialog(self, update: Update):
+    """Диалог настройки больничного"""
+    query = update.callback_query
+    text = """👩‍💼 *Настройка больничного*
 Чтобы уйти на больничный, напишите:
 /status sick ДД.ММ
 *Пример:*
@@ -843,21 +849,23 @@ class MaryAssistantBot:
 3. Все будут знать, что вы на больничном
 *Для выхода с больничного:*
 /status available"""
-        await query.edit_message_text(text, parse_mode="Markdown")
+    await query.edit_message_text(text, parse_mode="Markdown")
 
-    async def settings_dialog(self, query):
-        """Диалог настроек"""
-        text = """👩‍💼 *Настройки бота*
+async def settings_dialog(self, update: Update):
+    """Диалог настроек"""
+    query = update.callback_query
+    text = """👩‍💼 *Настройки бота*
 Сейчас доступны только настройки через команды:
 • /autoreply — автоответчик
 • /status — статус
 В будущих версиях появятся дополнительные настройки!
 👩‍💼 С уважением, Маня"""
-        await query.edit_message_text(text, parse_mode="Markdown")
+    await query.edit_message_text(text, parse_mode="Markdown")
 
-    async def help_dialog(self, query):
-        """Диалог помощи"""
-        text = """👩‍💼 *Помощь и поддержка*
+async def help_dialog(self, update: Update):
+    """Диалог помощи"""
+    query = update.callback_query
+    text = """👩‍💼 *Помощь и поддержка*
 *Частые вопросы:*
 1. *Как настроить автоответчик?*
 Используйте /autoreply или кнопку "🤖 Автоответчик"
@@ -873,11 +881,12 @@ class MaryAssistantBot:
 • Напишите мне снова
 *Для быстрой помощи пишите:* @mary_secretary_bot
 👩‍💼 С уважением, Маня"""
-        await query.edit_message_text(text, parse_mode="Markdown")
+    await query.edit_message_text(text, parse_mode="Markdown")
 
-    async def back_to_main(self, query):
-        """Возврат в главное меню"""
-        user = query.from_user
+async def back_to_main(self, update: Update):
+    """Возврат в главное меню"""
+    query = update.callback_query
+    user = update.effective_user
         text = f"""👩‍💼 *Главное меню*
 Выберите действие, {user.first_name}:"""
         keyboard = [
