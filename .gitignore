@@ -2,4 +2,3 @@
 __pycache__/
 *.pyc
 mary_database.json
-.DS_Store
