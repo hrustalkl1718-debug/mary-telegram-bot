@@ -913,52 +913,52 @@ async def back_to_main(self, update: Update):
         parse_mode="Markdown"
     )
 
-    # ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
-    def run(self):
-        """Запускает бота в режиме webhook для Render"""
-        application = Application.builder().token(self.token).build()
-        # Сохраняем ссылку на экземпляр бота для доступа из job
-        application.bot_data["bot_instance"] = self
+# ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
+def run(self):
+    """Запускает бота в режиме webhook для Render"""
+    application = Application.builder().token(self.token).build()
+    # Сохраняем ссылку на экземпляр бота для доступа из job
+    application.bot_data["bot_instance"] = self
 
-        # Регистрируем обработчики
-        application.add_handler(CommandHandler("start", self.start))
-        application.add_handler(CommandHandler("autoreply", self.autoreply_command))
-        application.add_handler(CommandHandler("status", self.status_command))
-        application.add_handler(CommandHandler("tasks", self.tasks_command))
-        application.add_handler(CommandHandler("today", self.today_command))
-        application.add_handler(CommandHandler("help", self.help_command))
-        application.add_handler(CallbackQueryHandler(self.button_handler))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+    # Регистрируем обработчики
+    application.add_handler(CommandHandler("start", self.start))
+    application.add_handler(CommandHandler("autoreply", self.autoreply_command))
+    application.add_handler(CommandHandler("status", self.status_command))
+    application.add_handler(CommandHandler("tasks", self.tasks_command))
+    application.add_handler(CommandHandler("today", self.today_command))
+    application.add_handler(CommandHandler("help", self.help_command))
+    application.add_handler(CallbackQueryHandler(self.button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
 
-        print("=" * 70)
-        print("👩‍💼 ЗАПУСКАЕТСЯ СЕКРЕТАРЬ МАНЯ В РЕЖИМЕ WEBHOOK")
-        print("=" * 70)
-        print("🤖 ИИ: DeepSeek API (работает в России)")
-        print("🔔 Автоответчик: 5 режимов работы")
-        print("📅 Умное планирование встреч и задач")
-        print("⏰ Интеллектуальные напоминания")
-        print("☁️  Готов к работе в облаке 24/7")
-        print("=" * 70)
-        print("\n📱 Открой Telegram и напиши боту /start")
-        print("🌍 Бот будет работать ВЕЗДЕ без твоего компьютера")
-        print("=" * 70)
+    print("=" * 70)
+    print("👩‍💼 ЗАПУСКАЕТСЯ СЕКРЕТАРЬ МАНЯ В РЕЖИМЕ WEBHOOK")
+    print("=" * 70)
+    print("🤖 ИИ: DeepSeek API (работает в России)")
+    print("🔔 Автоответчик: 5 режимов работы")
+    print("📅 Умное планирование встреч и задач")
+    print("⏰ Интеллектуальные напоминания")
+    print("☁️  Готов к работе в облаке 24/7")
+    print("=" * 70)
+    print("\n📱 Открой Telegram и напиши боту /start")
+    print("🌍 Бот будет работать ВЕЗДЕ без твоего компьютера")
+    print("=" * 70)
 
-        # Получаем URL сервиса из переменной окружения RENDER_EXTERNAL_URL
-        webhook_url = os.getenv("RENDER_EXTERNAL_URL")
-        if not webhook_url:
-            raise ValueError("❌ ОШИБКА: RENDER_EXTERNAL_URL не задан! Укажите его в Environment Variables на Render.")
+    # Получаем URL сервиса из переменной окружения RENDER_EXTERNAL_URL
+    webhook_url = os.getenv("RENDER_EXTERNAL_URL")
+    if not webhook_url:
+        raise ValueError("❌ ОШИБКА: RENDER_EXTERNAL_URL не задан! Укажите его в Environment Variables на Render.")
 
-        # Безопасный путь webhook (используем часть токена)
-        webhook_path = f"/webhook/{self.token.split(':')[1]}"
-        full_webhook_url = webhook_url.rstrip('/') + webhook_path
+    # Безопасный путь webhook (используем часть токена)
+    webhook_path = f"/webhook/{self.token.split(':')[1]}"
+    full_webhook_url = webhook_url.rstrip('/') + webhook_path
 
-        # Запускаем webhook
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=int(os.environ.get("PORT", 10000)),
-            url_path=webhook_path,
-            webhook_url=full_webhook_url
-        )
+    # Запускаем webhook
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000)),
+        url_path=webhook_path,
+        webhook_url=full_webhook_url
+    )
 
 # ==================== ГЛАВНАЯ ФУНКЦИЯ ====================
 def main():
