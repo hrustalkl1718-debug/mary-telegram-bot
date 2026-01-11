@@ -888,7 +888,7 @@ async def back_to_main(self, update: Update):
     query = update.callback_query
     user = update.effective_user
     text = f"""👩‍💼 *Главное меню*
-Выберите действие, {user.first_name}:"""
+    Выберите действие, {user.first_name}:"""
     keyboard = [
         [
             InlineKeyboardButton("🤖 Автоответчик", callback_data="autoreply_menu"),
@@ -908,9 +908,9 @@ async def back_to_main(self, update: Update):
         ]
     ]
     await query.edit_message_text(
-            text=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown"
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown"
     )
 
     # ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
