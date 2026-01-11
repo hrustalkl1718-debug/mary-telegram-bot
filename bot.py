@@ -237,7 +237,7 @@ class MaryAssistantBot:
             self.save_database()
         return self.db["users"][user_id_str]
 
-    def update_user_data(self, user_id: int,  Dict):
+    def update_user_data(self, user_id: int, data: Dict):  # ИСПРАВЛЕНО: data: Dict
         """Обновляет данные пользователя"""
         user_data = self.get_user_data(user_id)
         user_data.update(data)
@@ -745,7 +745,8 @@ class MaryAssistantBot:
 
     async def set_autoreply_mode(self, update: Update, mode: str):
         """Устанавливает режим автоответчика"""
-        user_id = update.effective_user.id  # ← правильно
+        query = update.callback_query
+        user_id = query.from_user.id  # Используем query.from_user
         user_data = self.get_user_data(user_id)
         mode_map = {
             "work": AutoReplyMode.WORK_HOURS,
@@ -762,14 +763,13 @@ class MaryAssistantBot:
                 "custom": "👩‍💼 Включён пользовательский автоответчик",
                 "off": "👩‍💼 Автоответчик выключен. Отвечаю на все сообщения лично"
             }
-        
-            query = update.callback_query
             await query.edit_message_text(messages[mode])
             await asyncio.sleep(2)
             await self.show_autoreply_menu(update)
 
-    async def set_status_from_button(self, query, status: str):
+    async def set_status_from_button(self, update: Update, status: str):
         """Устанавливает статус из кнопки"""
+        query = update.callback_query
         user_id = query.from_user.id
         if status == "vacation":
             await query.edit_message_text(
@@ -795,7 +795,7 @@ class MaryAssistantBot:
     async def today_from_button(self, update: Update):
         """Показывает сегодняшний день из кнопки"""
         query = update.callback_query
-        user_id = update.effective_user.id
+        user_id = query.from_user.id
         today = datetime.now().strftime("%d.%m.%Y")
         text = f"👩‍💼 *Сегодня {today}:*\n"
         text += "📅 *Встречи:*\n• Нет запланированных встреч\n"
@@ -804,25 +804,42 @@ class MaryAssistantBot:
         text += "👩‍💼 С уважением, Маня"
         await query.edit_message_text(text, parse_mode="Markdown")
 
-async def reminders_from_button(self, update: Update):
-    """Показывает напоминания"""
-    query = update.callback_query
-    user_id = update.effective_user.id
-    reminders = self.db["reminders"].get(str(user_id), [])
-    if not reminders:
-        text = "👩‍💼 *У вас пока нет напоминаний!*\nНапишите, например:\n• \"Напомни позвонить маме в 18:00\"\n• \"Напоминание: оплатить счет завтра\""
-    else:
-        text = "👩‍💼 *Ваши напоминания:*\n"
-        for i, rem in enumerate(reminders[-5:], 1):
-            time_str = datetime.fromisoformat(rem["time"]).strftime("%d.%m %H:%M")
-            status = "✅" if rem["status"] == "sent" else "⏰"
-            text += f"{i}. {status} {time_str} — {rem['text'][:40]}...\n"
-    await query.edit_message_text(text, parse_mode="Markdown")
+    async def tasks_from_button(self, update: Update):
+        """Показывает задачи из кнопки"""
+        query = update.callback_query
+        user_id = query.from_user.id
+        user_tasks = self.db["tasks"].get(str(user_id), [])
+        if not user_tasks:
+            text = "👩‍💼 *У вас пока нет задач!*\nДобавьте задачу, написав мне:\n• \"Нужно сделать отчёт к пятнице\"\n• \"Задача: купить продукты\"\n• Или просто скажите что нужно сделать"
+        else:
+            text = "👩‍💼 *Ваши задачи:*\n"
+            for i, task in enumerate(user_tasks[:10], 1):
+                status = "✅" if task.get("completed", False) else "⏳"
+                text += f"{i}. {status} {task['text'][:50]}"
+                if len(task['text']) > 50:
+                    text += "..."
+                text += "\n"
+        await query.edit_message_text(text, parse_mode="Markdown")
 
-async def vacation_dialog(self, update: Update):
-    """Диалог настройки отпуска"""
-    query = update.callback_query
-    text = """👩‍💼 *Настройка отпуска*
+    async def reminders_from_button(self, update: Update):
+        """Показывает напоминания"""
+        query = update.callback_query
+        user_id = query.from_user.id
+        reminders = self.db["reminders"].get(str(user_id), [])
+        if not reminders:
+            text = "👩‍💼 *У вас пока нет напоминаний!*\nНапишите, например:\n• \"Напомни позвонить маме в 18:00\"\n• \"Напоминание: оплатить счет завтра\""
+        else:
+            text = "👩‍💼 *Ваши напоминания:*\n"
+            for i, rem in enumerate(reminders[-5:], 1):
+                time_str = datetime.fromisoformat(rem["time"]).strftime("%d.%m %H:%M")
+                status = "✅" if rem["status"] == "sent" else "⏰"
+                text += f"{i}. {status} {time_str} — {rem['text'][:40]}...\n"
+        await query.edit_message_text(text, parse_mode="Markdown")
+
+    async def vacation_dialog(self, update: Update):
+        """Диалог настройки отпуска"""
+        query = update.callback_query
+        text = """👩‍💼 *Настройка отпуска*
 Чтобы уйти в отпуск, напишите:
 /status vacation ДД.ММ ДД.ММ
 *Пример:*
@@ -833,12 +850,12 @@ async def vacation_dialog(self, update: Update):
 3. Все будут знать, что вы в отпуске
 *Для выхода из отпуска:*
 /status available"""
-    await query.edit_message_text(text, parse_mode="Markdown")
+        await query.edit_message_text(text, parse_mode="Markdown")
 
-async def sick_dialog(self, update: Update):
-    """Диалог настройки больничного"""
-    query = update.callback_query
-    text = """👩‍💼 *Настройка больничного*
+    async def sick_dialog(self, update: Update):
+        """Диалог настройки больничного"""
+        query = update.callback_query
+        text = """👩‍💼 *Настройка больничного*
 Чтобы уйти на больничный, напишите:
 /status sick ДД.ММ
 *Пример:*
@@ -849,23 +866,23 @@ async def sick_dialog(self, update: Update):
 3. Все будут знать, что вы на больничном
 *Для выхода с больничного:*
 /status available"""
-    await query.edit_message_text(text, parse_mode="Markdown")
+        await query.edit_message_text(text, parse_mode="Markdown")
 
-async def settings_dialog(self, update: Update):
-    """Диалог настроек"""
-    query = update.callback_query
-    text = """👩‍💼 *Настройки бота*
+    async def settings_dialog(self, update: Update):
+        """Диалог настроек"""
+        query = update.callback_query
+        text = """👩‍💼 *Настройки бота*
 Сейчас доступны только настройки через команды:
 • /autoreply — автоответчик
 • /status — статус
 В будущих версиях появятся дополнительные настройки!
 👩‍💼 С уважением, Маня"""
-    await query.edit_message_text(text, parse_mode="Markdown")
+        await query.edit_message_text(text, parse_mode="Markdown")
 
-async def help_dialog(self, update: Update):
-    """Диалог помощи"""
-    query = update.callback_query
-    text = """👩‍💼 *Помощь и поддержка*
+    async def help_dialog(self, update: Update):
+        """Диалог помощи"""
+        query = update.callback_query
+        text = """👩‍💼 *Помощь и поддержка*
 *Частые вопросы:*
 1. *Как настроить автоответчик?*
 Используйте /autoreply или кнопку "🤖 Автоответчик"
@@ -881,84 +898,84 @@ async def help_dialog(self, update: Update):
 • Напишите мне снова
 *Для быстрой помощи пишите:* @mary_secretary_bot
 👩‍💼 С уважением, Маня"""
-    await query.edit_message_text(text, parse_mode="Markdown")
+        await query.edit_message_text(text, parse_mode="Markdown")
 
-async def back_to_main(self, update: Update):
-    """Возврат в главное меню"""
-    query = update.callback_query
-    user = update.effective_user
-    text = f"""👩‍💼 *Главное меню*
-    Выберите действие, {user.first_name}:"""
-    keyboard = [
-        [
-            InlineKeyboardButton("🤖 Автоответчик", callback_data="autoreply_menu"),
-            InlineKeyboardButton("📅 Сегодня", callback_data="today")
-        ],
-        [
-            InlineKeyboardButton("📝 Задачи", callback_data="tasks"),
-            InlineKeyboardButton("⏰ Напоминания", callback_data="reminders")
-        ],
-        [
-            InlineKeyboardButton("🏖️ Отпуск", callback_data="vacation"),
-            InlineKeyboardButton("🤒 Больничный", callback_data="sick")
-        ],
-        [
-            InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
-            InlineKeyboardButton("❓ Помощь", callback_data="help")
+    async def back_to_main(self, update: Update):
+        """Возврат в главное меню"""
+        query = update.callback_query
+        user = query.from_user
+        text = f"""👩‍💼 *Главное меню*
+Выберите действие, {user.first_name}:"""
+        keyboard = [
+            [
+                InlineKeyboardButton("🤖 Автоответчик", callback_data="autoreply_menu"),
+                InlineKeyboardButton("📅 Сегодня", callback_data="today")
+            ],
+            [
+                InlineKeyboardButton("📝 Задачи", callback_data="tasks"),
+                InlineKeyboardButton("⏰ Напоминания", callback_data="reminders")
+            ],
+            [
+                InlineKeyboardButton("🏖️ Отпуск", callback_data="vacation"),
+                InlineKeyboardButton("🤒 Больничный", callback_data="sick")
+            ],
+            [
+                InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
+                InlineKeyboardButton("❓ Помощь", callback_data="help")
+            ]
         ]
-    ]
-    await query.edit_message_text(
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown"
-    )
+        await query.edit_message_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
 
-# ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
-def run(self):
-    """Запускает бота в режиме webhook для Render"""
-    application = Application.builder().token(self.token).build()
-    # Сохраняем ссылку на экземпляр бота для доступа из job
-    application.bot_data["bot_instance"] = self
+    # ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
+    def run(self):
+        """Запускает бота в режиме webhook для Render"""
+        application = Application.builder().token(self.token).build()
+        # Сохраняем ссылку на экземпляр бота для доступа из job
+        application.bot_data["bot_instance"] = self
 
-    # Регистрируем обработчики
-    application.add_handler(CommandHandler("start", self.start))
-    application.add_handler(CommandHandler("autoreply", self.autoreply_command))
-    application.add_handler(CommandHandler("status", self.status_command))
-    application.add_handler(CommandHandler("tasks", self.tasks_command))
-    application.add_handler(CommandHandler("today", self.today_command))
-    application.add_handler(CommandHandler("help", self.help_command))
-    application.add_handler(CallbackQueryHandler(self.button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+        # Регистрируем обработчики
+        application.add_handler(CommandHandler("start", self.start))
+        application.add_handler(CommandHandler("autoreply", self.autoreply_command))
+        application.add_handler(CommandHandler("status", self.status_command))
+        application.add_handler(CommandHandler("tasks", self.tasks_command))
+        application.add_handler(CommandHandler("today", self.today_command))
+        application.add_handler(CommandHandler("help", self.help_command))
+        application.add_handler(CallbackQueryHandler(self.button_handler))
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
 
-    print("=" * 70)
-    print("👩‍💼 ЗАПУСКАЕТСЯ СЕКРЕТАРЬ МАНЯ В РЕЖИМЕ WEBHOOK")
-    print("=" * 70)
-    print("🤖 ИИ: DeepSeek API (работает в России)")
-    print("🔔 Автоответчик: 5 режимов работы")
-    print("📅 Умное планирование встреч и задач")
-    print("⏰ Интеллектуальные напоминания")
-    print("☁️  Готов к работе в облаке 24/7")
-    print("=" * 70)
-    print("\n📱 Открой Telegram и напиши боту /start")
-    print("🌍 Бот будет работать ВЕЗДЕ без твоего компьютера")
-    print("=" * 70)
+        print("=" * 70)
+        print("👩‍💼 ЗАПУСКАЕТСЯ СЕКРЕТАРЬ МАНЯ В РЕЖИМЕ WEBHOOK")
+        print("=" * 70)
+        print("🤖 ИИ: DeepSeek API (работает в России)")
+        print("🔔 Автоответчик: 5 режимов работы")
+        print("📅 Умное планирование встреч и задач")
+        print("⏰ Интеллектуальные напоминания")
+        print("☁️  Готов к работе в облаке 24/7")
+        print("=" * 70)
+        print("\n📱 Открой Telegram и напиши боту /start")
+        print("🌍 Бот будет работать ВЕЗДЕ без твоего компьютера")
+        print("=" * 70)
 
-    # Получаем URL сервиса из переменной окружения RENDER_EXTERNAL_URL
-    webhook_url = os.getenv("RENDER_EXTERNAL_URL")
-    if not webhook_url:
-        raise ValueError("❌ ОШИБКА: RENDER_EXTERNAL_URL не задан! Укажите его в Environment Variables на Render.")
+        # Получаем URL сервиса из переменной окружения RENDER_EXTERNAL_URL
+        webhook_url = os.getenv("RENDER_EXTERNAL_URL")
+        if not webhook_url:
+            raise ValueError("❌ ОШИБКА: RENDER_EXTERNAL_URL не задан! Укажите его в Environment Variables на Render.")
 
-    # Безопасный путь webhook (используем часть токена)
-    webhook_path = f"/webhook/{self.token.split(':')[1]}"
-    full_webhook_url = webhook_url.rstrip('/') + webhook_path
+        # Безопасный путь webhook (используем часть токена)
+        webhook_path = f"/webhook/{self.token.split(':')[1]}"
+        full_webhook_url = webhook_url.rstrip('/') + webhook_path
 
-    # Запускаем webhook
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", 10000)),
-        url_path=webhook_path,
-        webhook_url=full_webhook_url
-    )
+        # Запускаем webhook
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=int(os.environ.get("PORT", 10000)),
+            url_path=webhook_path,
+            webhook_url=full_webhook_url
+        )
 
 # ==================== ГЛАВНАЯ ФУНКЦИЯ ====================
 def main():
