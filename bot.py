@@ -237,7 +237,7 @@ class MaryAssistantBot:
             self.save_database()
         return self.db["users"][user_id_str]
 
-    def update_user_data(self, user_id: int, data: Dict):
+    def update_user_data(self, user_id: int,  Dict):
         """Обновляет данные пользователя"""
         user_data = self.get_user_data(user_id)
         user_data.update(data)
@@ -794,10 +794,8 @@ class MaryAssistantBot:
     async def today_from_button(self, query):
         """Показывает сегодняшний день из кнопки"""
         user_id = query.from_user.id
-        # Упрощённая версия команды /today
         today = datetime.now().strftime("%d.%m.%Y")
         text = f"👩‍💼 *Сегодня {today}:*\n"
-        # Простые тестовые данные
         text += "📅 *Встречи:*\n• Нет запланированных встреч\n"
         text += "📝 *Задачи:*\n• Добавьте задачи, написав мне\n"
         text += "🎉 *Совет дня:* Отличное время для планирования следующей недели!\n"
@@ -907,28 +905,25 @@ class MaryAssistantBot:
             parse_mode="Markdown"
         )
 
-    # ==================== ЗАПУСК БОТА ====================
+    # ==================== ЗАПУСК БОТА В РЕЖИМЕ WEBHOOK ====================
     def run(self):
-        """Запускает бота"""
-        # Создаём приложение
+        """Запускает бота в режиме webhook для Render"""
         application = Application.builder().token(self.token).build()
         # Сохраняем ссылку на экземпляр бота для доступа из job
         application.bot_data["bot_instance"] = self
 
-        # Регистрируем обработчики команд
+        # Регистрируем обработчики
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("autoreply", self.autoreply_command))
         application.add_handler(CommandHandler("status", self.status_command))
         application.add_handler(CommandHandler("tasks", self.tasks_command))
         application.add_handler(CommandHandler("today", self.today_command))
         application.add_handler(CommandHandler("help", self.help_command))
-        # Регистрируем обработчики кнопок
         application.add_handler(CallbackQueryHandler(self.button_handler))
-        # Регистрируем обработчик всех сообщений
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
 
         print("=" * 70)
-        print("👩‍💼 ЗАПУСКАЕТСЯ СЕКРЕТАРЬ МАНЯ С АВТООТВЕТЧИКОМ")
+        print("👩‍💼 ЗАПУСКАЕТСЯ СЕКРЕТАРЬ МАНЯ В РЕЖИМЕ WEBHOOK")
         print("=" * 70)
         print("🤖 ИИ: DeepSeek API (работает в России)")
         print("🔔 Автоответчик: 5 режимов работы")
@@ -940,32 +935,41 @@ class MaryAssistantBot:
         print("🌍 Бот будет работать ВЕЗДЕ без твоего компьютера")
         print("=" * 70)
 
-        # Запускаем бота
-        application.run_polling()
+        # Получаем URL сервиса из переменной окружения RENDER_EXTERNAL_URL
+        webhook_url = os.getenv("RENDER_EXTERNAL_URL")
+        if not webhook_url:
+            raise ValueError("❌ ОШИБКА: RENDER_EXTERNAL_URL не задан! Укажите его в Environment Variables на Render.")
+
+        # Безопасный путь webhook (используем часть токена)
+        webhook_path = f"/webhook/{self.token.split(':')[1]}"
+        full_webhook_url = webhook_url.rstrip('/') + webhook_path
+
+        # Запускаем webhook
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=int(os.environ.get("PORT", 10000)),
+            url_path=webhook_path,
+            webhook_url=full_webhook_url
+        )
 
 # ==================== ГЛАВНАЯ ФУНКЦИЯ ====================
 def main():
     """Главная функция запуска"""
-    # Загружаем переменные окружения
     load_dotenv()
-    # Получаем ключи
     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
     DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
     if not TELEGRAM_TOKEN or not DEEPSEEK_API_KEY:
         print("❌ ОШИБКА: Не найдены необходимые ключи!")
-        print("\n📋 Проверьте файл .env в папке с ботом:")
+        print("\n📋 Проверьте Environment Variables на Render:")
         print("=" * 50)
         print("TELEGRAM_TOKEN=ваш_токен_от_BotFather")
         print("DEEPSEEK_API_KEY=ваш_ключ_deepseek")
         print("=" * 50)
-        print("\n🔑 Где взять ключи:")
-        print("1. Telegram токен: @BotFather → /newbot")
-        print("2. DeepSeek ключ: https://platform.deepseek.com/api_keys")
-        print("\n✨ Бот НЕ будет работать без этих ключей!")
         return
+
     print(f"✅ Токен Telegram: {TELEGRAM_TOKEN[:15]}...")
     print(f"✅ Ключ DeepSeek: {DEEPSEEK_API_KEY[:15]}...")
-    # Создаём и запускаем бота
+
     bot = MaryAssistantBot(TELEGRAM_TOKEN, DEEPSEEK_API_KEY)
     try:
         bot.run()
@@ -973,10 +977,6 @@ def main():
         print("\n🛑 Бот остановлен пользователем")
     except Exception as e:
         print(f"\n❌ Критическая ошибка: {e}")
-        print("\n💡 Попробуйте:")
-        print("1. Проверить интернет-соединение")
-        print("2. Убедиться что ключи правильные")
-        print("3. Перезапустить бота")
 
 if __name__ == "__main__":
     main()
