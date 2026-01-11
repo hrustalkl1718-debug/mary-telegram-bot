@@ -712,37 +712,36 @@ class MaryAssistantBot:
 
     # ==================== ОБРАБОТКА КНОПОК ====================
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Обработка нажатий кнопок"""
-        query = update.callback_query
-        await query.answer()
-        data = query.data
-        user_id = query.from_user.id
-        if data == "autoreply_menu":
-            await self.show_autoreply_menu(query)
-        elif data == "today":
-            await self.today_from_button(query)
-        elif data == "tasks":
-            await self.tasks_from_button(query)
-        elif data == "reminders":
-            await self.reminders_from_button(query)
-        elif data == "vacation":
-            await self.vacation_dialog(query)
-        elif data == "sick":
-            await self.sick_dialog(query)
-        elif data == "settings":
-            await self.settings_dialog(query)
-        elif data == "help":
-            await self.help_dialog(query)
-        elif data == "back_to_main":
-            await self.back_to_main(query)
-        # Обработка автоответчика
-        elif data.startswith("ar_"):
-            mode = data[3:]  # work, always, custom, off
-            await self.set_autoreply_mode(query, mode)
-        # Обработка статусов
-        elif data.startswith("status_"):
-            status = data[7:]  # vacation, sick, busy, available
-            await self.set_status_from_button(query, status)
+    """Обработка нажатий кнопок"""
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    if data == "autoreply_menu":
+        await self.show_autoreply_menu(update)
+    elif data == "today":
+        await self.today_from_button(update)
+    elif data == "tasks":
+        await self.tasks_from_button(update)
+    elif data == "reminders":
+        await self.reminders_from_button(update)
+    elif data == "vacation":
+        await self.vacation_dialog(update)
+    elif data == "sick":
+        await self.sick_dialog(update)
+    elif data == "settings":
+        await self.settings_dialog(update)
+    elif data == "help":
+        await self.help_dialog(update)
+    elif data == "back_to_main":
+        await self.back_to_main(update)
+    # Обработка автоответчика
+    elif data.startswith("ar_"):
+        mode = data[3:]  # work, always, custom, off
+        await self.set_autoreply_mode(update, mode)
+    # Обработка статусов
+    elif data.startswith("status_"):
+        status = data[7:]  # vacation, sick, busy, available
+        await self.set_status_from_button(update, status)
 
     async def set_autoreply_mode(self, query, mode: str):
         """Устанавливает режим автоответчика"""
