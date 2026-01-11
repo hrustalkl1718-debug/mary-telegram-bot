@@ -907,7 +907,7 @@ async def back_to_main(self, update: Update):
             InlineKeyboardButton("❓ Помощь", callback_data="help")
          ]
         ]
-        await query.edit_message_text(
+    await query.edit_message_text(
             text=text,
             reply_markup=InlineKeyboardMarkup(keyboard),
             parse_mode="Markdown"
