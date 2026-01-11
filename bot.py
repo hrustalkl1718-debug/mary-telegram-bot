@@ -889,23 +889,23 @@ async def back_to_main(self, update: Update):
     user = update.effective_user
     text = f"""👩‍💼 *Главное меню*
 Выберите действие, {user.first_name}:"""
-        keyboard = [
-            [
-                InlineKeyboardButton("🤖 Автоответчик", callback_data="autoreply_menu"),
-                InlineKeyboardButton("📅 Сегодня", callback_data="today")
-            ],
-            [
-                InlineKeyboardButton("📝 Задачи", callback_data="tasks"),
-                InlineKeyboardButton("⏰ Напоминания", callback_data="reminders")
-            ],
-            [
-                InlineKeyboardButton("🏖️ Отпуск", callback_data="vacation"),
-                InlineKeyboardButton("🤒 Больничный", callback_data="sick")
-            ],
-            [
-                InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
-                InlineKeyboardButton("❓ Помощь", callback_data="help")
-            ]
+    keyboard = [
+        [
+            InlineKeyboardButton("🤖 Автоответчик", callback_data="autoreply_menu"),
+            InlineKeyboardButton("📅 Сегодня", callback_data="today")
+         ],
+        [
+            InlineKeyboardButton("📝 Задачи", callback_data="tasks"),
+            InlineKeyboardButton("⏰ Напоминания", callback_data="reminders")
+         ],
+        [
+            InlineKeyboardButton("🏖️ Отпуск", callback_data="vacation"),
+            InlineKeyboardButton("🤒 Больничный", callback_data="sick")
+        ],
+        [
+            InlineKeyboardButton("⚙️ Настройки", callback_data="settings"),
+            InlineKeyboardButton("❓ Помощь", callback_data="help")
+         ]
         ]
         await query.edit_message_text(
             text=text,
